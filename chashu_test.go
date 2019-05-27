@@ -12,9 +12,9 @@ func TestResolver(t *testing.T) {
 	t.Logf("seed: %v", seed)
 
 	err := quick.Check(func(a, b, c, d string, keys []string) bool {
-		r1 := NewResolver([]string{a, b, c})
-		r2 := NewResolver([]string{a, c})
-		r3 := NewResolver([]string{a, b, c, d})
+		r1 := NewResolver(3, func(i int) string { return []string{a, b, c}[i] })
+		r2 := NewResolver(2, func(i int) string { return []string{a, c}[i] })
+		r3 := NewResolver(4, func(i int) string { return []string{a, b, c, d}[i] })
 
 		for _, key := range keys {
 			idx1 := r1.ResolveIndex(key)
