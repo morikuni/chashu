@@ -1,7 +1,9 @@
 package chashu
 
 import (
+	"fmt"
 	"math/rand"
+	"net"
 	"testing"
 	"testing/quick"
 	"time"
@@ -53,4 +55,31 @@ func TestResolver(t *testing.T) {
 	if err != nil {
 		t.Errorf("error: %v", err)
 	}
+}
+
+func ExampleNewResolver() {
+	ips := []net.IP{{192, 168, 10, 2}, {192, 168, 10, 3}, {192, 168, 10, 4}}
+	r := NewResolver(len(ips), func(i int) string {
+		return ips[i].String()
+	})
+	fmt.Println(ips[r.ResolveIndex("data 1")].String())
+	fmt.Println(ips[r.ResolveIndex("data 2")].String())
+	fmt.Println(ips[r.ResolveIndex("data 3")].String())
+
+	ips = append(ips[:1], ips[2]) // remove 2nd IP (192.168.10.3)
+	r.ReHash(len(ips), func(i int) string {
+		return ips[i].String()
+	})
+	fmt.Println("=== re-hash ===")
+	fmt.Println(ips[r.ResolveIndex("data 1")].String())
+	fmt.Println(ips[r.ResolveIndex("data 2")].String())
+	fmt.Println(ips[r.ResolveIndex("data 3")].String())
+	// Output:
+	// 192.168.10.3
+	// 192.168.10.4
+	// 192.168.10.2
+	// === re-hash ===
+	// 192.168.10.2
+	// 192.168.10.4
+	// 192.168.10.2
 }
