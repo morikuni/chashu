@@ -1,13 +1,11 @@
 package chashu
 
 import (
-	"hash/fnv"
+	"crypto/md5"
+	"encoding/binary"
 )
 
-func fnvHash(key string) uint64 {
-	h := fnv.New64()
-	h.Write([]byte(key))
-	// some salt seems to be needed for good distribution for short key
-	h.Write([]byte("salt"))
-	return h.Sum64()
+func md5Hash(key string) uint32 {
+	r := md5.Sum([]byte(key))
+	return binary.LittleEndian.Uint32(r[8:12])
 }

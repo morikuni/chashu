@@ -2,8 +2,14 @@ package chashu
 
 type Option func(*config)
 
-func WithHashFunc(f func(string) uint64) Option {
+func HashFunc(f func(string) uint32) Option {
 	return func(c *config) {
 		c.hash = f
+	}
+}
+
+func VirtualNode(n int) Option {
+	return func(c *config) {
+		c.numVNode = n
 	}
 }
