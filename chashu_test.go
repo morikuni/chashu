@@ -1,4 +1,4 @@
-package chashu
+package chashu_test
 
 import (
 	"fmt"
@@ -7,18 +7,21 @@ import (
 	"testing"
 	"testing/quick"
 	"time"
+
+	"github.com/morikuni/chashu"
 )
 
 func TestResolver(t *testing.T) {
 	seed := time.Now().UnixNano()
 	t.Logf("seed: %v", seed)
+	r := rand.New(rand.NewSource(seed))
 
-	err := quick.Check(func(a, b, c, d string, keys []string) bool {
-		r1 := NewResolver(3, func(i int) string { return []string{a, b, c}[i] })
-		r2 := NewResolver(2, func(i int) string { return []string{a, c}[i] })
-		r3 := NewResolver(4, func(i int) string { return []string{a, b, c, d}[i] })
+	err := quick.Check(func(a, b, c, d string) bool {
+		r1 := chashu.NewResolver(3, func(i int) string { return []string{a, b, c}[i] })
+		r2 := chashu.NewResolver(2, func(i int) string { return []string{a, c}[i] })
+		r3 := chashu.NewResolver(4, func(i int) string { return []string{a, b, c, d}[i] })
 
-		for _, key := range keys {
+		err := quick.Check(func(key string) bool {
 			idx1 := r1.ResolveIndex(key)
 			idx2 := r2.ResolveIndex(key)
 			idx3 := r3.ResolveIndex(key)
@@ -47,11 +50,14 @@ func TestResolver(t *testing.T) {
 				t.Log("ng", idx1, idx2, idx3)
 				return false
 			}
+			return true
+		}, &quick.Config{Rand: r})
+		if err != nil {
+			t.Errorf("error: %v", err)
+			return false
 		}
 		return true
-	}, &quick.Config{
-		Rand: rand.New(rand.NewSource(seed)),
-	})
+	}, &quick.Config{Rand: r})
 	if err != nil {
 		t.Errorf("error: %v", err)
 	}
@@ -59,7 +65,7 @@ func TestResolver(t *testing.T) {
 
 func ExampleNewResolver() {
 	ips := []net.IP{{192, 168, 10, 2}, {192, 168, 10, 3}, {192, 168, 10, 4}}
-	r := NewResolver(len(ips), func(i int) string {
+	r := chashu.NewResolver(len(ips), func(i int) string {
 		return ips[i].String()
 	})
 	fmt.Println(ips[r.ResolveIndex("data 1")].String())
