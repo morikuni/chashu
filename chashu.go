@@ -9,8 +9,15 @@ type Resolver interface {
 	ReHash(n int, f func(i int) string)
 }
 
-func NewResolver(n int, f func(i int) string) Resolver {
-	r := resolver{hash: fnvHash}
+func NewResolver(n int, f func(i int) string, opts ...Option) Resolver {
+	var c config
+	for _, o := range opts {
+		o(&c)
+	}
+	if c.hash == nil {
+		c.hash = fnvHash
+	}
+	r := resolver{hash: c.hash}
 	r.ReHash(n, f)
 	return &r
 }
@@ -18,6 +25,10 @@ func NewResolver(n int, f func(i int) string) Resolver {
 type element struct {
 	hash  uint64
 	index int
+}
+
+type config struct {
+	hash func(string) uint64
 }
 
 type resolver struct {
