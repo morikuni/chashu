@@ -32,8 +32,8 @@ type config struct {
 }
 
 var defaultConfig = config{
-	hash:     md5Hash,
-	numVNode: 20,
+	hash:     defaultHash,
+	numVNode: 100,
 }
 
 type resolver struct {
