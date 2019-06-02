@@ -71,24 +71,62 @@ func ExampleNewResolver() {
 	r := chashu.NewResolver(len(ips), func(i int) string {
 		return ips[i].String()
 	})
-	fmt.Println(ips[r.ResolveIndex("1")].String())
-	fmt.Println(ips[r.ResolveIndex("2")].String())
-	fmt.Println(ips[r.ResolveIndex("3")].String())
+	fmt.Println(ips[r.ResolveIndex("foo")].String())
+	fmt.Println(ips[r.ResolveIndex("bar")].String())
+	fmt.Println(ips[r.ResolveIndex("baz")].String())
 
 	ips = append(ips[:1], ips[2]) // remove 2nd IP (192.168.10.3)
 	r.ReHash(len(ips), func(i int) string {
 		return ips[i].String()
 	})
 	fmt.Println("=== re-hash ===")
-	fmt.Println(ips[r.ResolveIndex("1")].String()) // same node
-	fmt.Println(ips[r.ResolveIndex("2")].String()) // same node
-	fmt.Println(ips[r.ResolveIndex("3")].String()) // moved to other nodes, because 192.168.10.3 was removed
+	fmt.Println(ips[r.ResolveIndex("foo")].String()) // same node
+	fmt.Println(ips[r.ResolveIndex("bar")].String()) // same node
+	fmt.Println(ips[r.ResolveIndex("baz")].String()) // moved to other nodes, because 192.168.10.3 was removed
 	// Output:
-	// 192.168.10.2
 	// 192.168.10.4
+	// 192.168.10.2
 	// 192.168.10.3
 	// === re-hash ===
+	// 192.168.10.4
 	// 192.168.10.2
 	// 192.168.10.4
-	// 192.168.10.4
+}
+
+func TestResolver_ditribution(t *testing.T) {
+	seed := time.Now().UnixNano()
+	t.Logf("seed: %v", seed)
+	rng := rand.New(rand.NewSource(seed))
+
+	const (
+		Node  = 20
+		Try   = 100000
+		Error = 0.3
+	)
+	nodes := make([]net.IP, Node)
+	base := rng.Intn(128)
+	for i := 0; i < Node; i++ {
+		nodes[i] = net.IP{192, 168, 10, byte(base + i)}
+	}
+
+	r := chashu.NewResolver(len(nodes), func(i int) string { return nodes[i].String() })
+	counter := make(map[string]int)
+	for i := 0; i < Try; i++ {
+		v := nodes[r.ResolveIndex(strconv.Itoa(rng.Int()))]
+		counter[v.String()]++
+	}
+
+	avg := Try / Node
+	acceptableError := int(float64(Try) / (Node * Error))
+	unexpected := func(n int) bool {
+		if n > avg+acceptableError || n < avg-acceptableError {
+			return true
+		}
+		return false
+	}
+	for v, n := range counter {
+		if unexpected(n) {
+			t.Errorf("unexpected: value=%s count=%d", v, n)
+		}
+	}
 }
